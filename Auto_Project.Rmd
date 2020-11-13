@@ -8,12 +8,13 @@ editor_options:
  
 ```{r}
 library(faraway)
-library(tidyverse)
+#library(tidyverse)
 ```
 
 ```{r}
 #read file
-auto <-read.table("C:/Users/vanng/OneDrive/Documents/project1/auto-mpg.data",header= TRUE, col.names = c("mpg","cylinders", "displacement", "horsepower","weight", "acceleration","model_year", "origin", "car_name"))
+linkdata= "https://raw.githubusercontent.com/vannguyen26248/Regression-Project/main/auto-mpg.data"
+auto <-read.table(linkdata,header= TRUE, col.names = c("mpg","cylinders", "displacement", "horsepower","weight", "acceleration","model_year", "origin", "car_name"))
 auto_data<- data.frame(auto)
 head(auto_data)
 ```
