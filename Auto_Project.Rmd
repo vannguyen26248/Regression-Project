@@ -1,0 +1,68 @@
+---
+title: "Analyzing the impacts of various factors on fuel consumption "
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+
+ 
+```{r}
+library(faraway)
+#library(tidyverse)
+```
+
+```{r}
+#read file
+linkdata= "https://raw.githubusercontent.com/vannguyen26248/Regression-Project/main/auto-mpg.data"
+#filename= "C:/Users/vanng/OneDrive/Documents/project1/auto-mpg.data"
+auto <-read.table(linkdata,header= TRUE, col.names = c("mpg","cylinders", "displacement", "horsepower","weight", "acceleration","model_year", "origin", "car_name"))
+auto_data<- data.frame(auto)
+head(auto_data)
+```
+
+```{r}
+#converting string to number 
+auto_data$horsepower <- as.numeric(as.character(auto_data$horsepower)) 
+#delete missing values
+data <-na.omit(auto_data)
+#discriptive statist
+summary(data)
+
+```
+```{r}
+pairs(~ mpg +displacement +horsepower+weight +acceleration,data =data, pch=16, cex= .5, main= "mpg ,displacement, horsepower,weight")
+```
+
+
+```{r}
+fullmodel <- lm(mpg ~ displacement +horsepower+weight +acceleration, data)
+summary(fullmodel)
+
+```
+```{r}
+vif(fullmodel)
+```
+
+
+```{r}
+reducemodel <- lm(mpg ~weight +acceleration, data)
+summary(reducemodel)
+vif(reducemodel)
+
+```
+
+```{r}
+res <- residuals(fullmodel)
+fit <- fitted(fullmodel)
+plot(fit, res, xlab = "Fitted", ylab = "residual", main = "Residual plot", lwd=2)
+abline(h=0)
+```
+```{r}
+plot(fit, sqrt(abs(res)), xlab = "Fitted", ylab = "residual", main = "Residual plot", lwd=2)
+abline(h=0)
+```
+```{r}
+qqnorm(res, ylab = "residual", main = "QQ plot", lwd=2)
+qqline(res)
+```
+
