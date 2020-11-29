@@ -82,3 +82,46 @@ BestRgMod$coef
 #my process: variable selection goes first. then fit model, then do transformations.
 #all the variables are significant though...
 #vif: the two-variable model is the first one with no multicollinearity
+
+
+
+
+
+#Matt H, principal component analysis and fixing multicollinearity
+
+#cmpg <- mpgdata[-c(32,126,330,336,354,374),3:6]
+cmpg <- mpgdata[,3:6] #edited and removed the 6 NA rows on my own file to conduct PCA
+summary(cmpg)
+prcmpg <- prcomp(cmpg) #not including cylinders
+summary(prcmpg)
+round(prcmpg$rot[,1],2)
+round(apply(cmpg,2,var),2)
+
+#scaled PCA
+prcmpg2 <- prcomp(cmpg,scale=TRUE)
+summary(prcmpg2)
+
+round(prcmpg2$rot[,1],2)
+round(apply(cmpg,2,var),2)
+
+#including cylinders as one of our predictors does not matter because cylinders and displacement are related
+
+
+lmod <- lm(mpg~  displacement + horsepower + weight + acceleration, data=mpgdata)
+summary(lmod)
+round(vif(lmod),2) ##Find VIF, serious multicollinearity
+prcmpg2 <- prcomp(cmpg,scale=TRUE)
+plot(prcmpg2$sdev,type="l",ylab="SD of PC", xlab="PC number")
+
+##PC regression with first two PCs, with removal of 6 missing data
+lmodpcr <- lm(mpgdata$mpg ~ prcmpg2$x[,1])
+summary(lmodpcr)
+round(vif(lmodpcr),2)
+
+
+
+
+
+
+
+
