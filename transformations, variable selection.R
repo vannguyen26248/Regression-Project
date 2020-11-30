@@ -9,63 +9,78 @@ mpgdata <- read.table("auto-mpg.data",header= TRUE,
                                     "horsepower","weight", "acceleration",
                                     "model_year", "origin", "car_name"),na.strings="?")
 
+#WRITE UP YOUR PART FOR REPORT AND PRESENTATION BY THURSDAY
+#Matt P: model selection, transformation, ridge/lasso.
 lmod <- lm(mpg~  displacement + horsepower + weight + acceleration, data=mpgdata)
 plot(lmod$residuals ~ lmod$fitted.values)
 
+#what does R do with NA's on horsepower
+#cylinders wasn't significant???
+
 #Box-Cox transformation, full model
 boxcox(lmod, plotit=T)
-bclmod <- lm(2*(sqrt(mpg)-1)~  displacement + horsepower + weight + acceleration, data=mpgdata)
+bclmod <- lm(-2*(sqrt(mpg)-1)~  displacement + horsepower + weight + acceleration, data=mpgdata)
 plot(bclmod$residuals ~ bclmod$fitted.values)
 
 #Subset selection
-summary(regsubsets(mpg~displacement + horsepower + weight + acceleration, data=mpgdata))
-OneVarMod <- lm(mpg~weight,data=mpgdata)
-TwoVarMod <- lm(mpg~horsepower+weight, data=mpgdata)
-ThreeVarMod <- lm(mpg~displacement+horsepower+weight,data=mpgdata)
+summary(regsubsets(-2*(sqrt(mpg)-1)~displacement + horsepower + weight + acceleration, data=mpgdata))
+OneVarMod <- lm(-2*(sqrt(mpg)-1)~weight,data=mpgdata)
+TwoVarMod <- lm(-2*(sqrt(mpg)-1)~horsepower+weight, data=mpgdata)
+ThreeVarMod <- lm(-2*(sqrt(mpg)-1)~displacement+horsepower+weight,data=mpgdata)
+
+#horsepower vs. acceleration?
+
 
 paste("adjusted R^2 for model with ",c(1,2,3,4),"predictors: ",
       c(summary(OneVarMod)$adj.r.squared,summary(TwoVarMod)$adj.r.squared,
-        summary(ThreeVarMod)$adj.r.squared,summary(lmod)$adj.r.squared))
+        summary(ThreeVarMod)$adj.r.squared,summary(bclmod)$adj.r.squared))
 
 paste("AIC for model with ",c(1,2,3,4),"predictors: ",
       c(AIC(OneVarMod),AIC(TwoVarMod),
-        AIC(ThreeVarMod),AIC(lmod)))
+        AIC(ThreeVarMod),AIC(bclmod)))
 #chose 2 variable mod
-anova(TwoVarMod,lmod)
-anova(ThreeVarMod,lmod)
+anova(TwoVarMod,bclmod)
+anova(ThreeVarMod,bclmod)
 
-plot(TwoVarMod$residuals ~TwoVarMod$fitted.values)
-boxcox(TwoVarMod,plotit=T)
-bcTwomod <- lm(2*(sqrt(mpg)-1)~  horsepower + weight , data=mpgdata)
+
+
 #check constant variance
 plot(TwoVarMod$residuals ~TwoVarMod$fitted.values)
+
+#is this satisfactory for constant variance? are all the ups and downs on left side of plot
+#because there are more observations there?
+
+#clearly the errors ought to be independent...not time series, etc.
+#but is it? model year = year car was made....
+
 #check normal data
-qqnorm(residuals(bcTwomod),ylab = "Residuals",main="")
-qqline(residuals(bcTwomod))
-shapiro.test(residuals(bcTwomod))
+qqnorm(residuals(TwoVarMod),ylab = "Residuals",main="")
+qqline(residuals(TwoVarMod))
+shapiro.test(residuals(TwoVarMod))
 
 #check for influential points: Cook's distance
-plot(bcTwomod) #there do not seem to be any? What's high cook's distance?
+plot(TwoVarMod) #there do not seem to be any? What's high cook's distance?
 
 #checking for outliers:
-range(rstudent(bcTwomod))
-which(abs(rstudent(bcTwomod))>=3)
+range(rstudent(TwoVarMod))
+which(abs(rstudent(TwoVarMod))>=3)
 
 NoOutlierData <- mpgdata[-c(322,387,320,381),]
-BestLmod <- lm(2*(sqrt(mpg)-1)~horsepower+weight, data=NoOutlierData)
+BestLmod <- lm(-2*(sqrt(mpg)-1)~horsepower+weight, data=NoOutlierData)
 plot(BestLmod)
 AIC(BestLmod)
-AIC(bcTwomod)
+AIC(TwoVarMod)
 #better model without the outliers
 
-#checking linear relationships: we know they're all significant but...
+#checking linear relationships:
+lmod2 <- lm(mpg ~horsepower + weight, data=NoOutlierData)
 delta_hp <- residuals(lm(horsepower ~ weight, data=NoOutlierData))
 delta_wgt <- residuals(lm(weight~horsepower, data=NoOutlierData))
-plot(residuals(BestLmod)~delta_hp)
-plot(residuals(BestLmod)~delta_wgt)
+plot(residuals(lmod2)~delta_hp)
+plot(residuals(lmod2)~delta_wgt)
 
 #all over the place, clearly not linear... 
-
+#do I do this on the transformed data or original data?
 
 #Ridge regression: two variables
 lambda <- seq(0, 5e-8, len=21)
