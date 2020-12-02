@@ -9,6 +9,18 @@ mpgdata <- read.table("auto-mpg.data",header= TRUE,
                                     "horsepower","weight", "acceleration",
                                     "model_year", "origin", "car_name"),na.strings="?")
 
+#what variables make sense? cylinders/weight correlated. heavier => more cylinders
+#look into data before we exclude anything.
+#could you even make cylinders continuous?
+#highly correlated =>remove.
+#don't remove w/o justification.
+#try to justify w/ horsepower, making that continuous.
+#approximately satisfy assumptions
+
+
+#PCA used when there's multicollinearity
+#by design orthogonal
+
 #WRITE UP YOUR PART FOR REPORT AND PRESENTATION BY THURSDAY
 #Matt P: model selection, transformation, ridge/lasso.
 lmod <- lm(mpg~  displacement + horsepower + weight + acceleration, data=mpgdata)
@@ -29,8 +41,8 @@ TwoVarMod <- lm(-2*(sqrt(mpg)-1)~horsepower+weight, data=mpgdata)
 ThreeVarMod <- lm(-2*(sqrt(mpg)-1)~displacement+horsepower+weight,data=mpgdata)
 
 #horsepower vs. acceleration?
-
-
+#e.g. vif less than 4, more than 4. no hard and fast rule.
+#bring in other practical considerations. ideally vif should be close to 1. 1.3 vs 1.5 not a big difference.
 paste("adjusted R^2 for model with ",c(1,2,3,4),"predictors: ",
       c(summary(OneVarMod)$adj.r.squared,summary(TwoVarMod)$adj.r.squared,
         summary(ThreeVarMod)$adj.r.squared,summary(bclmod)$adj.r.squared))
@@ -42,7 +54,11 @@ paste("AIC for model with ",c(1,2,3,4),"predictors: ",
 anova(TwoVarMod,bclmod)
 anova(ThreeVarMod,bclmod)
 
+#state how you deal with missing data. only 6 missing values and don't want to add extra uncertainty
+#from imputation.
 
+#how many missing observations is a lot? e.g. more than 20% missing data gets tossed out entirely.
+#context dependent.
 
 #check constant variance
 plot(TwoVarMod$residuals ~TwoVarMod$fitted.values)
