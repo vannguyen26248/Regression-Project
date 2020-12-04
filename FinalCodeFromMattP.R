@@ -8,7 +8,7 @@ mpgdata <- na.omit(read.table("auto-mpg.data",header= TRUE,
                       col.names = c("mpg","cylinders", "displacement", 
                                     "horsepower","weight", "acceleration",
                                     "model_year", "origin", "car_name"),na.strings="?"))
-lmod <- lm(mpg~  displacement + horsepower + weight + acceleration, data=mpgdata)
+lmod <- lm(mpg~  cylinders + displacement + horsepower + weight + acceleration, data=mpgdata)
 
 
 
@@ -23,7 +23,7 @@ plot(lmod$residuals ~lmod$fitted.values, xlab="Fitted Values",ylab="Residuals", 
 
 #Box-Cox transformation, full model
 boxcox(lmod, plotit=T)
-boxcoxmod <- lm(-2*(sqrt(mpg)-1)~  displacement + horsepower + weight + acceleration, data=mpgdata)
+boxcoxmod <- lm(-2*(sqrt(mpg)-1)~ cylinders+ displacement + horsepower + weight + acceleration, data=mpgdata)
 plot(boxcoxmod$residuals ~ boxcoxmod$fitted.values,xlab="Fitted Values",ylab="Residuals", main="
      Box-Cox Model: Residuals vs. Fitted Values")
 
@@ -32,13 +32,14 @@ plot(boxcoxmod$residuals ~ boxcoxmod$fitted.values,xlab="Fitted Values",ylab="Re
 
 
 #log transformation, full model
-logmod <- lm(log(mpg) ~ displacement + horsepower + weight + acceleration, data=mpgdata)
+logmod <- lm(log(mpg) ~ cylinders+ displacement + horsepower + weight + acceleration, data=mpgdata)
 plot(logmod$residuals ~ logmod$fitted.values, xlab="Fitted Values",ylab="Residuals", main="
      Log Model: Residuals vs. Fitted Values")
-#constant variance is better, no influential points
+#constant variance is better
 
 
 #check for normality
+
 qqnorm(residuals(logmod),ylab = "Residuals",main="qq-plot After Log Transformation")
 qqline(residuals(logmod))
 shapiro.test(residuals(logmod))
@@ -51,7 +52,7 @@ rstudent(logmod)[which(abs(rstudent(logmod))>=3)] #see which studentized residua
 
 
 halfnorm(hatvalues(logmod), main="Half-Normal Plot: Leverages")
-#some observations need investigation
+#some observations (13) need investigation
 halfnorm(cooks.distance(logmod),ylab="Cook's Distance", main="Half-Normal Plot: Cook's Distances") #faraway
 #no cook's distances need investigation... no potential influential points
 
@@ -59,7 +60,7 @@ halfnorm(cooks.distance(logmod),ylab="Cook's Distance", main="Half-Normal Plot: 
 
 NoOutlierData <-mpgdata[-which(abs(rstudent(logmod))>=3),]
 
-logmodNoOutliers <- lm(log(mpg) ~ displacement + horsepower + weight + acceleration, data=NoOutlierData)
+logmodNoOutliers <- lm(log(mpg) ~ cylinders+ displacement + horsepower + weight + acceleration, data=NoOutlierData)
 
 
 #variable selection
@@ -69,24 +70,25 @@ stepwise(logmodNoOutliers,direction="backward/forward",criterion="AIC")
 stepwise(logmodNoOutliers,direction="forward/backward",criterion="AIC")
 
 #subset selection, with outliers then without outliers
-summary(regsubsets(log(mpg) ~ displacement + horsepower + weight + acceleration, data=mpgdata))
-summary(regsubsets(log(mpg) ~ displacement + horsepower + weight + acceleration, data=NoOutlierData))
+summary(regsubsets(log(mpg) ~ cylinders+ displacement + horsepower + weight + acceleration, data=mpgdata))
+summary(regsubsets(log(mpg) ~ cylinders+ displacement + horsepower + weight + acceleration, data=NoOutlierData))
 #best models of each size are the same
 ModelScores <- function(Dataset,lmodel){
   
-  OneVarMod <- lm(log(mpg)~weight,data=Dataset)
   TwoVarMod <- lm(log(mpg)~horsepower+weight, data=Dataset)
-  ThreeVarMod <- lm(log(mpg)~displacement+horsepower+weight,data=Dataset)
-  print("Three Variable Model VIF:")
-  print(vif(ThreeVarMod))
+  ThreeVarMod <- lm(log(mpg)~cylinders+horsepower+weight,data=Dataset)
+  FourVarMod <- lm(log(mpg)~cylinders+horsepower+acceleration+weight, data=Dataset)
   print("Two Variable Model VIF:")
   print(vif(TwoVarMod))
-  print(summary(TwoVarMod))
-  
-  paste("For the model with ",c(1,2,3,4),"predictors: Adjusted R^2 is ",
-      c(summary(OneVarMod)$adj.r.squared, summary(TwoVarMod)$adj.r.squared,
+  print("Three Variable Model VIF:")
+  print(vif(ThreeVarMod))
+  print("Four Variable Model VIF:")
+  print(vif(FourVarMod))
+
+  paste("For the model with ",c(2,3,4),"predictors: Adjusted R^2 is ",
+      c(summary(TwoVarMod)$adj.r.squared,
         summary(ThreeVarMod)$adj.r.squared,summary(lmodel)$adj.r.squared),"and AIC is ",
-      c(AIC(OneVarMod),AIC(TwoVarMod),
+      c(AIC(TwoVarMod),
         AIC(ThreeVarMod),AIC(lmodel)))
 }
 
@@ -106,12 +108,21 @@ ModelScores(NoOutlierData,logmodNoOutliers)
 Bestmod <- lm(log(mpg)~horsepower+weight, data=NoOutlierData)
 summary(Bestmod)
 plot(Bestmod)
+qqnorm(residuals(Bestmod),ylab = "Residuals",main="Final Model qq-plot After Log Transformation")
+qqline(residuals(Bestmod))
+shapiro.test(residuals(Bestmod))
 which(abs(rstudent(Bestmod))>=3)
 #checking for linear relationship between transformed response and predictors
 plot(log(mpg)~horsepower, data=mpgdata, main="Response vs. Horsepower")
 plot(log(mpg)~weight, data=mpgdata, main="Response vs. Weight")
 
-#both cases: nothing too concerning. multicollinearity: vifs are close but less than 4.
+halfnorm(hatvalues(Bestmod), main="Final Model Half-Normal Plot: Leverages")
+halfnorm(cooks.distance(Bestmod), ylab="Cook's Distance", main="Final Model Half-Normal Plot: Cook's Distances")
+#similar story; only one point has concerning leverage. However obs 114 has slightly
+#high leverage and unusually high Cook's distance.
+#approximately satisfy assumption of no influential points.
+
+
 #note that removing outliers resulted in slightly improved R^2 and AIC, but other than that little changes.
 
 #Conclusion: in both cases we chose model with weight and horsepower as predictors.
